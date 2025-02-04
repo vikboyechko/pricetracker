@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Price History Tracker",
+  "version": "1.0",
+  "description": "Tracks and displays historical lowest prices for products",
+  "permissions": ["storage", "activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
