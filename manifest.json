@@ -1,9 +1,20 @@
 {
   "manifest_version": 3,
-  "name": "Price History Tracker",
+  "name": "Price Tracking Extension",
   "version": "1.0",
-  "description": "Tracks and displays historical lowest prices for products",
-  "permissions": ["storage", "activeTab"],
+  "description": "Tracks price changes on product pages.",
+  "permissions": ["storage", "scripting", "activeTab"],
+  "action": {
+    "default_popup": "popup.html",
+    "trackingOptions": {
+      "trackDomain": true,
+      "trackPage": true,
+      "trackingEnabled": true
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
