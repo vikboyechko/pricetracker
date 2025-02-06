@@ -21,6 +21,8 @@ function getSchemaInfo() {
 function getCurrentPrice() {
   console.log('Price History Extension: Starting price detection...');
   
+  const hostname = window.location.hostname;
+  
   // First try schema price
   const schemaInfo = getSchemaInfo();
   if (schemaInfo?.price) {
@@ -29,8 +31,63 @@ function getCurrentPrice() {
       return { price, element: null };
     }
   }
+
+  // Site-specific selectors
+  if (hostname.includes('lowes.com')) {
+    const mainPriceElement = document.querySelector('[data-testid="main-price"]');
+    if (mainPriceElement) {
+      const priceMatch = mainPriceElement.textContent.match(/\$\s*([\d,]+(?:\.\d{2})?)/);
+      if (priceMatch) {
+        const price = Number(priceMatch[1].replace(/,/g, ''));
+        if (!isNaN(price) && price > 0) {
+          return { price, element: mainPriceElement };
+        }
+      }
+    }
+  }
   
-  // Find all elements with prices
+  if (hostname.includes('wayfair.com')) {
+    // Look for the BoxV3 div and get its first span child
+    const priceContainer = document.querySelector('div[data-hb-id="BoxV3"]');
+    if (priceContainer) {
+      const firstPriceSpan = priceContainer.querySelector('span');
+      if (firstPriceSpan) {
+        const priceMatch = firstPriceSpan.textContent.match(/\$\s*([\d,]+(?:\.\d{2})?)/);
+        if (priceMatch) {
+          const price = Number(priceMatch[1].replace(/,/g, ''));
+          if (!isNaN(price) && price > 0) {
+            return { price, element: firstPriceSpan };
+          }
+        }
+      }
+    }
+  }
+
+  if (hostname.includes('amazon')) {
+    // Try various Amazon price selectors
+    const selectors = [
+      '.a-price .a-offscreen',
+      '#priceblock_ourprice',
+      '#priceblock_dealprice',
+      '#price_inside_buybox',
+      '.a-price-whole'
+    ];
+    
+    for (const selector of selectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        const priceMatch = element.textContent.match(/\$?\s*([\d,]+(?:\.\d{2})?)/);
+        if (priceMatch) {
+          const price = Number(priceMatch[1].replace(/,/g, ''));
+          if (!isNaN(price) && price > 0) {
+            return { price, element };
+          }
+        }
+      }
+    }
+  }
+
+  // Generic price detection for other sites
   const elements = Array.from(document.getElementsByTagName('*')).filter(el => {
     const text = el.textContent || '';
     return text.includes('$');
@@ -40,8 +97,6 @@ function getCurrentPrice() {
   const pricesWithDetails = elements.map(el => {
     try {
       const fontSize = parseFloat(window.getComputedStyle(el).fontSize);
-      const rect = el.getBoundingClientRect();
-      const verticalPosition = rect.top + window.scrollY;
       
       // Get the full context including parent and siblings
       const elementContext = [
@@ -55,39 +110,19 @@ function getCurrentPrice() {
           elementContext.includes('was $') ||
           elementContext.includes('reg. $') ||
           elementContext.includes('regular $') ||
-          elementContext.includes('original $')) {
+          elementContext.includes('original $') ||
+          elementContext.match(/\(\$[\d,.]+/)) {
         return null;
       }
       
-      // Look for price pattern
       let priceMatch = el.textContent.match(/\$\s*([\d,]+(?:\.\d{2})?)/);
-      if (!priceMatch) {
-        // Try parent if no direct match (might help with split prices)
-        priceMatch = el.parentElement?.textContent.match(/\$\s*([\d,]+(?:\.\d{2})?)/);
-      }
-      
       if (priceMatch) {
-        const priceStr = priceMatch[1].replace(/,/g, '');
-        const price = Number(priceStr);
-        
+        const price = Number(priceMatch[1].replace(/,/g, ''));
         if (!isNaN(price) && price > 0) {
-          // Prioritize sale prices
-          const fontBonus = elementContext.includes('sale') || 
-                           elementContext.includes('now') || 
-                           elementContext.includes('special buy') ? 10 : 0;
-          
-          console.log('Found price:', {
-            price,
-            fontSize,
-            bonus: fontBonus,
-            text: el.textContent.trim()
-          });
-          
-          return {
+          return { 
             element: el,
             price,
-            fontSize: fontSize + fontBonus,
-            verticalPosition
+            fontSize
           };
         }
       }
@@ -101,24 +136,10 @@ function getCurrentPrice() {
     return { price: null, element: null };
   }
 
-  // Log all found prices for debugging
-  console.log('All prices found:', pricesWithDetails.map(p => ({
-    price: p.price,
-    fontSize: p.fontSize,
-    text: p.element.textContent.trim()
-  })));
-
   // Sort by font size (largest first)
   pricesWithDetails.sort((a, b) => b.fontSize - a.fontSize);
   
-  // Get prices with the largest font size
-  const maxFontSize = pricesWithDetails[0].fontSize;
-  const largestPrices = pricesWithDetails.filter(p => p.fontSize === maxFontSize);
-  
-  // Among equal font sizes, pick the highest one on the page
-  largestPrices.sort((a, b) => a.verticalPosition - b.verticalPosition);
-  
-  const selectedPrice = largestPrices[0];
+  const selectedPrice = pricesWithDetails[0];
   console.log('Selected price:', {
     price: selectedPrice.price,
     fontSize: selectedPrice.fontSize,
