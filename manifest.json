@@ -1,24 +1,23 @@
 {
   "manifest_version": 3,
-  "name": "Price Tracking Extension",
+  "name": "Price Tracker",
   "version": "1.0",
-  "description": "Tracks price changes on product pages.",
-  "permissions": ["storage", "scripting", "activeTab"],
+  "description": "Track product prices",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
   "action": {
-    "default_popup": "popup.html",
-    "trackingOptions": {
-      "trackDomain": true,
-      "trackPage": true,
-      "trackingEnabled": true
-    }
-  },
-  "background": {
-    "service_worker": "background.js"
+    "default_popup": "popup.html"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"]
     }
-  ]
+  ],
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
 }
