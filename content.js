@@ -47,16 +47,19 @@ function getCurrentPrice() {
   }
   
   if (hostname.includes('wayfair.com')) {
-    // Look for the BoxV3 div and get its first span child
-    const priceContainer = document.querySelector('div[data-hb-id="BoxV3"]');
+    // Look for the SFPrice container
+    const priceContainer = document.querySelector('.SFPrice');
     if (priceContainer) {
-      const firstPriceSpan = priceContainer.querySelector('span');
-      if (firstPriceSpan) {
-        const priceMatch = firstPriceSpan.textContent.match(/\$\s*([\d,]+(?:\.\d{2})?)/);
-        if (priceMatch) {
-          const price = Number(priceMatch[1].replace(/,/g, ''));
-          if (!isNaN(price) && price > 0) {
-            return { price, element: firstPriceSpan };
+      // Get all spans and find the first one that doesn't contain "per item"
+      const spans = Array.from(priceContainer.getElementsByTagName('span'));
+      for (const span of spans) {
+        if (!span.textContent.includes('per item')) {
+          const priceMatch = span.textContent.match(/\$\s*([\d,]+(?:\.\d{2})?)/);
+          if (priceMatch) {
+            const price = Number(priceMatch[1].replace(/,/g, ''));
+            if (!isNaN(price) && price > 0) {
+              return { price, element: span };
+            }
           }
         }
       }
