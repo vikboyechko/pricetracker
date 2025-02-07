@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Price Tracker",
+  "name": "Price History Tracker",
   "version": "1.0",
-  "description": "Track product prices",
+  "description": "Track and compare product prices over time",
   "permissions": [
     "storage",
     "activeTab"
