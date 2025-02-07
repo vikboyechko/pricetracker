@@ -226,3 +226,48 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   return true;
 });
+
+async function savePriceHistory(productId, price) {
+  const key = `price_history_${productId}`;
+  const now = new Date().toISOString();
+  
+  try {
+    const result = await chrome.storage.local.get(key);
+    let history = result[key] || [];
+    
+    if (history.length === 0 || history[history.length - 1].price !== price) {
+      history.push({
+        price: price,
+        timestamp: now
+      });
+      
+      if (history.length > 30) {
+        history = history.slice(-30);
+      }
+      
+      await chrome.storage.local.set({ [key]: history });
+      console.log(`Saved price ${price} for product ${productId}`);
+    } else {
+      console.log(`Price ${price} already recorded for product ${productId}`);
+    }
+  } catch (error) {
+    console.error('Error saving price history:', error);
+  }
+}
+
+async function startPriceDetection() {
+  const priceInfo = await getCurrentPrice();
+  if (priceInfo) {
+    console.log('Price element found:', priceInfo);
+    insertPriceHistoryElement(priceInfo);
+    
+    // Add this line to save price
+    const url = window.location.href;
+    const productId = url.split('/').pop().split('?')[0]; // Simple ID extraction
+    if (productId && priceInfo.price) {
+      savePriceHistory(productId, priceInfo.price);
+    }
+  } else {
+    console.log('No price element found');
+  }
+}
