@@ -16,4 +16,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true;
   }
+  if (request.action === 'get-product-title') {
+    const title = document.title.replace(/^Amazon.com: /, '');
+    sendResponse({ title });
+  }
 });

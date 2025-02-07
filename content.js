@@ -159,24 +159,12 @@ function getProductInfo() {
   const { price: currentPrice } = getCurrentPrice();
   if (!currentPrice) return null;
 
-  // Get product title from various sources
-  const schemaInfo = getSchemaInfo();
-  let productTitle = schemaInfo?.title;
+  // Get product title from meta tags or document title
+  let productTitle = document.querySelector('meta[name="title"]')?.content || 
+                    document.title;
   
-  if (!productTitle) {
-    // Try h1
-    const h1 = document.querySelector('h1');
-    if (h1) {
-      productTitle = h1.textContent.trim();
-    }
-    
-    // Try meta tags if no h1
-    if (!productTitle) {
-      productTitle = document.querySelector('meta[property="og:title"]')?.content ||
-                    document.querySelector('meta[name="title"]')?.content ||
-                    document.title.split('|')[0].trim();
-    }
-  }
+  // Remove "Amazon.com:" prefix if present
+  productTitle = productTitle.replace(/^Amazon\.com:\s*/i, '').trim();
   
   if (!productTitle) return null;
 
@@ -271,3 +259,11 @@ async function startPriceDetection() {
     console.log('No price element found');
   }
 }
+
+chrome.runtime.sendMessage({ action: 'get-product-title' }, response => {
+  if (response && response.title) {
+    console.log('Product title:', response.title);
+  } else {
+    console.log('Product title not found');
+  }
+});
